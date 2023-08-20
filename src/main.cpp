@@ -33,7 +33,7 @@ const std::string asmExtension(".asm");
 
 void showVersion()
 {
-	std::cout << "npd " << version << " - a Nanoprocessor Disassembler\n\n";
+	std::cout << "npd " << version << " - a Nanoprocessor disassembler\n\n";
 	std::cout << "Copyright (C) 2023  Ricardo F. Lopes\n";
 	std::cout << "License GPLv3+: GNU GPL version 3 or later.\n";
 	std::cout << "This program comes with ABSOLUTELY NO WARRANTY.\n";
@@ -46,21 +46,20 @@ void showVersion()
 void showHelp()
 {
 	std::cout << "Usage: npd [OPTION]... FILE [-o OUTFILE]\n";
-	std::cout << "Disassemble binary FILE to HP Nanoprocessor instructions.\n\n";
-	std::cout << "Default output file is FILE.lst\n\n";
+	std::cout << "Disassemble a binary FILE into HP Nanoprocessor mnemonics.\n\n";
 	std::cout << "OPTION\n";
-	std::cout << "  -h            output this help text and exit.\n";
-	std::cout << "  -v            output version and license information and exit.\n";
-	std::cout << "  -o OUTFILE    set output file name.\n";
-	std::cout << "  -f            overwrite existing output file without warning.\n";
-	std::cout << "  -a            .asm output file (no addresses or opcodes).\n";
-	std::cout << "  -x            use hexadecimals. Default is octal.\n";
-	std::cout << "  -c            set comment character to '*'. Default is ';'.\n";
+	std::cout << "  -h            Output this help text and exit.\n";
+	std::cout << "  -v            Output version and license information, and exit.\n";
+	std::cout << "  -o OUTFILE    Set the output file name. The default is FILE.lst (.asm)\n";
+	std::cout << "  -f            Overwrite an existing output file without warning.\n";
+	std::cout << "  -a            .asm output file (excludes addresses and opcodes).\n";
+	std::cout << "  -x            Use hexadecimals. The default is octal.\n";
+	std::cout << "  -c            Use '*' in comments. The default is ';'.\n\n";
 }
 
 void showUsage()
 {
-	std::cerr << "Usage: npd 'binary_file_name'\n";
+	std::cerr << "Usage: npd 'binary_file'\n";
 }
 
 int main(int argc, char* argv[])
@@ -75,7 +74,7 @@ int main(int argc, char* argv[])
     std::string inputFilename;
     std::string outputFilename;
     bool overwriteOutput = false;
-    bool asmOut = false;
+    bool asmMode = false;
     bool hexMode = false;
     char commentChar = ';';
     
@@ -99,7 +98,7 @@ int main(int argc, char* argv[])
                 overwriteOutput = true;
                 break;
             case 'a':  // suppress addresses and opcodes from output
-                asmOut = true;
+                asmMode = true;
                 break;
             case 'x':  // hexadecimal numbers
                 hexMode = true;
@@ -121,7 +120,7 @@ int main(int argc, char* argv[])
         }
     }
 
-	// <issing input file name
+	// Missing input file name
 	if (optind >= argc)
     {
 		showUsage();
@@ -148,7 +147,7 @@ int main(int argc, char* argv[])
 	std::vector<uint8_t> binaryInput(std::istreambuf_iterator<char>(inFileStream), {});
     inFileStream.close();
 
-    // Define output file based on input file name
+    // Define output file
     if (outputFilename.empty())
     {
         // remove original extension
@@ -163,7 +162,7 @@ int main(int argc, char* argv[])
         }
 
         // set new extension
-        if (asmOut)
+        if (asmMode)
         {
             outputFilename += asmExtension;
         }
@@ -181,11 +180,11 @@ int main(int argc, char* argv[])
     {
         char answer;
         testFileStream.close();
-        std::cout << outputFilename << "' already exist. Overwrite it? [y/n]";
+        std::cout << "File: " << outputFilename << "\nAlready exist. Overwrite it? [y/n]";
         std::cin >> answer;
         if (toupper(answer) != 'Y')
         {
-            std::cerr << "No files written!\n";
+            std::cerr << "Halted.\n";
             return -1;
         }		
     }
@@ -194,16 +193,15 @@ int main(int argc, char* argv[])
     std::ofstream outFileStream(outputFilename);
     if (!outFileStream.is_open())
     {
-        std::cerr << "Error writing file '" << outputFilename << "'\n";
+        std::cerr << "Error writing file " << outputFilename << std::endl;
         return -1;
     }
 
     // Disassemble
-    NpDisassembler disasm(asmOut, hexMode, commentChar, outFileStream);
-    disasm.disassemble(&binaryInput, inputFilename, version);
+    NpDisassembler disasm(asmMode, hexMode, commentChar, version, outFileStream);
+    disasm.disassemble(&binaryInput, inputFilename);
     outFileStream.close();
-    
-    std::cout << "Output file created: " << outputFilename << std::endl;
-  
+    std::cout << "Output file: " << outputFilename << std::endl;
+
     return 0;
 }

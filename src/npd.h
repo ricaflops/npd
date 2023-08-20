@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "decoder.h"
 
@@ -28,10 +29,15 @@
 class NpDisassembler
 {
 public:
-    NpDisassembler(bool asmOut, bool hexMode, char commentChar, std::ostream& outStream);
+    NpDisassembler(bool asmOut, 
+                   bool hexMode, 
+                   char commentChar, 
+                   const std::string &version, 
+                   std::ostream& outStream);
     ~NpDisassembler();
     
-    void disassemble(std::vector<uint8_t> const *pInput, const std::string &filename, const std::string &version);
+    void disassemble(std::vector<uint8_t> const *pInput, 
+                     const std::string &filename);
     
 private:
     void FirstPass();
@@ -53,6 +59,8 @@ private:
 
     bool m_asmOutput;
     char m_commentChar;
+	std::string m_version;
+    
     char m_barChar;
     size_t m_romSize;
 	std::vector<uint8_t> const *pBinary=NULL;

@@ -27,8 +27,12 @@
 #include "npd.h"
 
 // Constructor
-NpDisassembler::NpDisassembler(bool asmOut, bool hexMode, char commentChar, std::ostream& outStream)
-: m_asmOutput(asmOut), m_commentChar(commentChar), m_outStream(outStream)
+NpDisassembler::NpDisassembler(bool asmOut, 
+                               bool hexMode, 
+                               char commentChar, 
+                               const std::string &version, 
+                               std::ostream& outStream)
+: m_asmOutput(asmOut), m_commentChar(commentChar), m_version(version), m_outStream(outStream)
 {
     m_romSize = 0;  // No binary data yet
     // set line bar characters according to comment character option
@@ -54,8 +58,9 @@ NpDisassembler::~NpDisassembler()
 }
 
 /// @brief Disassemble binary vector to output stream
-void NpDisassembler::disassemble(std::vector<uint8_t> const *pInput, const std::string &filename, const std::string &version)
-{    
+void NpDisassembler::disassemble(std::vector<uint8_t> const *pInput, 
+                                 const std::string &filename)
+{
 	pBinary = pInput;
     m_romSize = (MaxRomSize < pBinary->size()) ? MaxRomSize : pBinary->size();
     
@@ -63,21 +68,19 @@ void NpDisassembler::disassemble(std::vector<uint8_t> const *pInput, const std::
 
 	// Header
 	AddBarLine(LongBarSize);
-    comment = "npd v" + version + " - Nanoprocessor Disassembler";
+    comment = "npd " + m_version + " - Nanoprocessor Disassembler";
 	AddCommentLine(comment);
 	
+	// Add file name
     comment.erase();
 	comment.append("File: ");
-	comment.append(filename);
-	AddCommentLine(comment);
-
-	comment.erase();
-	comment.append("Size: ");
+	comment.append(filename.substr(filename.find_last_of("/\\") + 1));
+	comment.append("   (");
 	comment.append(std::to_string(m_romSize));
-	comment.append(" Bytes");
+	comment.append(" Bytes)");	
 	AddCommentLine(comment);
 
-	// Get current time
+    // Add date and time
     time_t rawtime = time(NULL);
     // Convert time_t to tm as local time
     struct tm *timeinfo;
@@ -89,6 +92,7 @@ void NpDisassembler::disassemble(std::vector<uint8_t> const *pInput, const std::
     comment.append(buffer);
     AddCommentLine(comment);
 
+    // Add mode: Octal / Hex
     if (m_decoder.isHexMode())
     {
 		AddCommentLine("Mode: Hexadecimal");
@@ -133,16 +137,16 @@ void NpDisassembler::FirstPass()
 /// @brief Disassembly Second Pass
 void NpDisassembler::SecondPass()
 {
-    uint16_t address = 0;    // Program counter
-    uint8_t opcode = 0; // current instruction
-    uint8_t parameter = 0;  // eventual current instruction parameter
+    uint16_t address = 0;  // Program counter
+    uint8_t opcode = 0;  // current instruction
+    uint8_t parameter = 0;  // current instruction parameter
     std::string mnemonic;
     std::string comment;
     std::string text;
     
     while( (size_t)address < m_romSize )
     {
-		// Insert Label
+		// Add Label
 		if (hasLabel(address))
 		{
 			AddLabelLine(address);
@@ -153,7 +157,7 @@ void NpDisassembler::SecondPass()
 
         // Build new text line
         text.erase();
-		// Include Address and opcode byte (.lst output only)
+		// Add Address and opcode byte (.lst output only)
 		if (!m_asmOutput)
 	    {
 			m_decoder.AppendAddressString(address, text);
@@ -178,19 +182,19 @@ void NpDisassembler::SecondPass()
         // Translate opcode
         m_decoder.TranslateOpCode(opcode, parameter, mnemonic, comment);
 
-		// Include Instruction and comment
+		// Add Instruction and comment
         AppendTab(InstructionTabSize, text);
         text.append(mnemonic);
         AppendComment(text, comment);
         m_outStream << text << std::endl;
 
-        // Insert break after 'Jump' and 'Return' type instructions
+        // Add line after 'Jump' and 'Return' type instructions
         if ( m_decoder.isReturnOrJumpInstruction(opcode) )
         {
             AddBarLine(ShortBarSize);
         }
         
-        // Insert break after 'Skip' type instructions
+        // Add line after 'Skip' type instructions
         if (m_decoder.isSkipInstruction(opcode))
         {
 			AddBarLine(TinyBarSize);
@@ -200,12 +204,10 @@ void NpDisassembler::SecondPass()
 		address++;
 	}
 	
-	// Finish
-    m_outStream << std::endl;
+	// End
     text.erase();
     AppendTab(InstructionTabSize, text);
-    text.append("END");
-    m_outStream << text << std::endl;
+    m_outStream << text << "END\n";
 }
 
 /// @brief Include address in the to-be-Label list
@@ -242,7 +244,6 @@ void NpDisassembler::AppendTab(int tabSize, std::string &text)
 void NpDisassembler::AppendComment(std::string &text, const std::string &comment)
 {
     AppendTab(CommentTabSize, text);
-    
 	text.push_back(m_commentChar);
 	text.push_back(' ');
 	text.append(comment);
@@ -251,8 +252,8 @@ void NpDisassembler::AppendComment(std::string &text, const std::string &comment
 void NpDisassembler::AddCommentLine(const std::string &comment)
 {
     std::string text;
+
     AppendTab(0, text);
-    
 	text.push_back(m_commentChar);
 	text.push_back(' ');
 	text.append(comment);
@@ -262,8 +263,8 @@ void NpDisassembler::AddCommentLine(const std::string &comment)
 void NpDisassembler::AddBarLine(int n)
 {
     std::string text;
+
     AppendTab(0, text);
-    
     text.push_back(m_commentChar);
     text.append(n, m_barChar);
     m_outStream << text << std::endl;
@@ -272,8 +273,8 @@ void NpDisassembler::AddBarLine(int n)
 void NpDisassembler::AddLabelLine(uint16_t x)
 {
     std::string text;
+
     AppendTab(0, text);
-	
 	text.append("L_");
 	m_decoder.AppendAddressString(x, text);
     m_outStream << text << std::endl;
