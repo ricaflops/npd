@@ -1,0 +1,5 @@
+build/
+ref/
+npd
+samples/*.asm
+samples/*.lst

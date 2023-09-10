@@ -4,41 +4,36 @@
 
 ## Example
 
-Disassemble a binary file `rom.bin` by typing:
-
-	./npd rom.bin
+Disassemble a binary file `rom.bin` by typing `./npd rom.bin` .
 
 A listing file `rom.lst` will be created:
 
 ```
                 ;----------------------------------------
-                ; npd 1.0 - Nanoprocessor Disassembler
-                ; File: rom.bin   (19 Bytes)
-                ; Date: 2023-08-20   18:16
+                ; npd v1.0 - Nanoprocessor Disassembler
+                ; File: ./rom.bin
+                ; Size: 14 Bytes
+                ; Date: 2023-07-20   17:43
                 ; Mode: Octal
                 ;----------------------------------------
                 L_0000
-0000:  100                INA  DS0        ; Input from Device to ACC
-0001:  165                STA  R5         ; Store ACC at Register
-0002:  320 000            STR  R0,000     ; Store data at Register
-                L_0004
-0004:  145                LDA  R5         ; Load ACC from Register
-0005:  017                SAN             ; Skip on ACC != 0
+0000:  145                LDA  R5         ; Load ACC from Register
+0001:  003                DED             ; Decrement ACC (BCD)
+0002:  017                SAN             ; Skip on ACC != 0
                 ;-------------
-0006:  200 017            JMP  L_0017     ; Unconditional Jump
+0003:  200 013            JMP  L_0013     ; Unconditional Jump
                 ;--------------------------
-0010:  003                DED             ; Decrement ACC (BCD)
-0011:  165                STA  R5         ; Store ACC at Register
-0012:  140                LDA  R0         ; Load ACC from Register
-0013:  000                INB             ; Increment ACC (binary)
-0014:  160                STA  R0         ; Store ACC at Register
-0015:  200 004            JMP  L_0004     ; Unconditional Jump
+0005:  165                STA  R5         ; Store ACC at Register
+0006:  146                LDA  R6         ; Load ACC from Register
+0007:  002                IND             ; Increment ACC (BCD)
+0010:  166                STA  R6         ; Store ACC at Register
+0011:  200 000            JMP  L_0000     ; Unconditional Jump
                 ;--------------------------
-                L_0017
-0017:  140                LDA  R0         ; Load ACC from Register
-0020:  121                OTA  DS1        ; Output ACC to Device
-0021:  200 000            JMP  L_0000     ; Unconditional Jump
-                ;--------------------------
+                L_0013
+0013:  146                LDA  R6         ; Load ACC from Register
+0014:  002                IND             ; Increment ACC (BCD)
+0015:  166                STA  R6         ; Store ACC at Register
+
                           END
 ```
 
@@ -50,21 +45,21 @@ equipments that uses the Nanoprocessor like the old HP 4262A LCR meter.
 ## Requirements
 
 As the source code is very simple the only requirement is a modern C++ compiler.
-No special external library is necessary.
+No external library is necessary.
 
 I compiled it in Linux using **g++** version 11.3.0 and **GNU Make** version 4.3 
 but it shall be easy to compile in other operating systems as well using other C++ compiler.
- Check your compiler documentation.
+ Just read the compiler of choice documentation.
 
 ## Compiling
 
 At the terminal prompt in the project root directory type:
 
-	g++ -std=c++17 ./src/*.cpp -o npd
+		g++ -O2 -s -std=c++11 ./src/*.cpp -o npd
 
 Alternativelly, if you have `make` installed, type:
 
-	make release=1
+		make
 
 An executable file named **npd** shall be created in the same directory.
 
@@ -75,14 +70,14 @@ An executable file named **npd** shall be created in the same directory.
 To disassemble a binary file run **npd** followed by it's name.
 For example, to disassemble the file `rom.bin` type:
 
-	./npd rom.bin
+		./npd rom.bin
 
 It will create a listing file named `rom.lst`.
 
 By default the output file includes addresses and opcodes.
 To get a clean *rom.asm* file use the `-a` option:
 
-	./npd -a rom.bin
+		./npd -a rom.bin
 
 By default all addresses, opcodes, and parameters will be in octal base
 as the original processor documentation.
@@ -95,12 +90,12 @@ These are the available **npd** command line options:
 | option  | effect |
 |---------|--------|
 | `-h`         | Output a help text and exit |
-| `-v`         | Output version and license information, and exit |
-| `-o OUTFILE` | Set the output file name |
-| `-f`         | Overwrite an existing output file without warning |
-| `-a`         | `.asm` output file (excludes addresses and opcodes) |
-| `-x`         | Use hexadecimals. The default is octal |
-| `-c`         | Use '*' in comments. The default is ';' |
+| `-v`         | Output version and license information and exit |
+| `-o OUTFILE` | Set output file name |
+| `-f`         | Overwrite existing output file without warning |
+| `-a`         | `.asm` output file (no addresses or opcodes) |
+| `-x`         | Hexadecimal numbers (default is octal). |
+| `-c`         | Asterisk comment character (default is `;`). |
 
 ## References
 

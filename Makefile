@@ -1,91 +1,90 @@
 #############################################
-# npd Makefile
+# npd
 #############################################
-# 'make' creates debug version
-# 'make release=1' creates release version
-# 'make clean' erase build files
+# Build release version:     make
+# Build debug version:       make debug=1
+# Clean release build files: make clean
+# Clean release build files: make debug=1 clean
 
 #############################################
-## Executable file
-#############################################
+##### EXECUTABLE
+
 EXEC := npd
 
 #############################################
-## Directories
-#############################################
-SRC_DIR := ./src
-BUILD_DIR := ./build
+##### DIRECTORIES
+
+SRCDIR     := ./src
+BUILDDIR   := ./build
+RELEASEDIR := release
+DEBUGDIR   := debug
+
+ifeq ($(debug),1)
+  BUILDTYPE := Debug
+  BUILDDIR := $(BUILDDIR)/$(DEBUGDIR)
+else
+  BUILDTYPE := Release
+  BUILDDIR := $(BUILDDIR)/$(RELEASEDIR)
+endif
 
 #############################################
-## Shell tools
-#############################################
+##### TOOLS
+
+CXX := g++
 RM_CMD := rm -rf
 MKDIR_CMD := mkdir -p
 
 #############################################
-## Compiler settings
-#############################################
-CC := gcc
-CXX := g++
-CXXFLAGS := -m64 -std=c++17 -pipe -Wall
+##### COMPILE SETTINGS
+
+CXXFLAGS := -m64 -std=c++11 -pipe -Wall
 LDFLAGS := 
 
-ifeq ($(release),1)
-	CXXFLAGS += -O3 -s
-	BUILD_TYPE := Release
+ifeq ($(debug),1)
+  CXXFLAGS += -g
 else
-	CXXFLAGS += -g
-	BUILD_TYPE := Debug
+  CXXFLAGS += -O2
+  LDFLAGS += -s
 endif
 
 #############################################
-## Files
-#############################################
+##### FILES
 
-# List of all .cpp files
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+SRCS := $(wildcard $(SRCDIR)/*.cpp)
  
-# Object files. One for each .cpp file
-OBJS := $(subst .cpp,.o, $(subst $(SRC_DIR),$(BUILD_DIR),$(SRCS)))
+OBJS := $(subst .cpp,.o, $(subst $(SRCDIR),$(BUILDDIR),$(SRCS)))
 
-# Dependency files. One for each .o file
 DEPS := $(OBJS:%.o=%.d)
 
 #############################################
-## Rules
-#############################################
-
-# Linker: *.o --> executable
-$(EXEC): $(OBJS)
-	@echo Linking: $@
-	@$(CXX) $(CXXFLAGS) -o $@ $^
-	@echo Done: $(BUILD_TYPE) build
-
-# Compiling rule: .cpp --> .o .d
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	@echo Compiling: $<
-	@$(CXX) $(LDFLAGS) $(CXX_FLAGS) -MMD -c $< -o $@
-	
-# Include dependency rules (.d files)
--include $(DEPS)
-
-# Create build directory
-$(BUILD_DIR):
-	@$(MKDIR_CMD) $(BUILD_DIR)
-
-#############################################
-## Targets
-#############################################
+##### TARGETS
 
 .PHONY: all clean
 
-# Create executable
-all:
-	$(EXEC)
+all: $(EXEC)
 
-# Cleanup
 clean:
 	@$(RM_CMD) $(EXEC)
-	@$(RM_CMD) $(BUILD_DIR)
-	@echo Cleaned.
+	@$(RM_CMD) $(BUILDDIR)
+	@echo $(BUILDTYPE) build cleaned
 
+#############################################
+##### RULES
+
+# Link
+$(EXEC): $(OBJS)
+	@echo Linking $(BUILDTYPE): $@
+	@$(CXX) $(LDFLAGS) -o $@ $^
+
+# Compile
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | $(BUILDDIR)
+	@echo Compiling $(BUILDTYPE): $<
+	@$(CXX) $(CXX_FLAGS) -MMD -c $< -o $@
+	
+# Dependencies
+-include $(DEPS)
+
+# Create directories
+$(BUILDDIR):
+	@echo Creating $(BUILDTYPE) build directories
+	@$(MKDIR_CMD) $(BUILDDIR)
